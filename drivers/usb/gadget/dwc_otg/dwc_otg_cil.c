@@ -219,7 +219,7 @@ dwc_otg_core_if_t *dwc_otg_cil_init(const uint32_t * reg_base_addr)
 	core_if->srp_timer_started = 0;
 
 #if 0
-	/* in device mode, we don't need workqueue */
+	in device mode, we don't need workqueue
 	/*
 	 * Create new workqueue and init works
 	 */
@@ -276,16 +276,23 @@ void dwc_otg_cil_remove(dwc_otg_core_if_t * core_if)
 	}
 */
 	if (core_if->dev_if) {
-		dwc_free(core_if->dev_if);
+		DWC_FREE(core_if->dev_if);
 	}
 	if (core_if->host_if) {
-		dwc_free(core_if->host_if);
+		DWC_FREE(core_if->host_if);
 	}
+	if (core_if->wkp_timer != 0) {
 	DWC_TIMER_FREE(core_if->wkp_timer);
+	}
+	if (core_if->core_params)
+	{
 	DWC_FREE(core_if->core_params);
-	dwc_free(core_if);
 }
-
+	if (core_if)
+	{
+		DWC_FREE(core_if);		
+	}
+}
 /**
  * This function enables the controller's Global Interrupt in the AHB Config
  * register.
@@ -420,7 +427,7 @@ static uint32_t calc_num_in_eps(dwc_otg_core_if_t * core_if)
 	uint32_t num_in_eps = 0;
 	uint32_t num_eps = core_if->hwcfg2.b.num_dev_ep;
 	uint32_t hwcfg1 = core_if->hwcfg1.d32 >> 3;
-/*	uint32_t num_tx_fifos = core_if->hwcfg4.b.num_in_eps; */
+	uint32_t num_tx_fifos = core_if->hwcfg4.b.num_in_eps;
 	int i;
 
 	for (i = 0; i < num_eps; ++i) {
@@ -859,7 +866,6 @@ void dwc_otg_core_dev_init(dwc_otg_core_if_t * core_if)
 	dwc_otg_dev_if_t *dev_if = core_if->dev_if;
 	dwc_otg_core_params_t *params = core_if->core_params;
 	dcfg_data_t dcfg = {.d32 = 0 };
-	dctl_data_t dctl = {.d32 = 0 };
 	grstctl_t resetctl = {.d32 = 0 };
 	uint32_t rx_fifo_size;
 	fifosize_data_t nptxfifosize;
@@ -869,11 +875,7 @@ void dwc_otg_core_dev_init(dwc_otg_core_if_t * core_if)
 
 	/* Restart the Phy Clock */
 	dwc_write_reg32(core_if->pcgcctl, 0);
-#ifdef CONFIG_USB_CORE_IP_293A
-	dctl.d32 = dwc_read_reg32(&dev_if->dev_global_regs->dctl);
-	dctl.b.sftdiscon = 0;
-	dwc_write_reg32(&dev_if->dev_global_regs->dctl, dctl.d32);
-#endif
+
 	/* Device configuration register */
 	init_devspd(core_if);
 	dcfg.d32 = dwc_read_reg32(&dev_if->dev_global_regs->dcfg);
@@ -2281,8 +2283,8 @@ void dwc_otg_ep_deactivate(dwc_otg_core_if_t * core_if, dwc_ep_t * ep)
 
 	depctl.d32 = dwc_read_reg32(addr);
 
-//	depctl.b.usbactep = 0;
-	depctl.b.snak = 1;
+	depctl.b.usbactep = 0;
+
 	if (core_if->dma_desc_enable)
 		depctl.b.epdis = 1;
 
@@ -2478,14 +2480,12 @@ void dwc_otg_ep_start_transfer(dwc_otg_core_if_t * core_if, dwc_ep_t * ep)
 			}
 		}
 
-#ifndef CONFIG_USB_CORE_IP_293A
  		if(deptsiz.b.xfersize==0){
  			depctl.b.snak = 1;
  			depctl.b.epena = 1;
  			dwc_write_reg32(&in_regs->diepctl, depctl.d32);
  		}
 		depctl.b.snak = 0;
-#endif
 		/* EP enable, IN data in FIFO */
 		depctl.b.cnak = 1;
 		depctl.b.epena = 1;
@@ -2785,7 +2785,6 @@ void dwc_otg_ep0_start_transfer(dwc_otg_core_if_t * core_if, dwc_ep_t * ep)
 			dwc_write_reg32(&in_regs->dieptsiz, deptsiz.d32);
 		}
 
-#ifndef CONFIG_USB_CORE_IP_293A
  		if(deptsiz.b.xfersize==0){
  			depctl.b.snak = 1;
  			depctl.b.epena = 1;
@@ -2796,7 +2795,6 @@ void dwc_otg_ep0_start_transfer(dwc_otg_core_if_t * core_if, dwc_ep_t * ep)
  		}while(depctl.b.naksts==0);
 
  		depctl.b.snak = 0;
-#endif
 		/* EP enable, IN data in FIFO */
 		depctl.b.cnak = 1;
 		depctl.b.epena = 1;

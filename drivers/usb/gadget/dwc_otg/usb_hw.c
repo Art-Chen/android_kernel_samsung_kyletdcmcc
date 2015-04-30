@@ -19,34 +19,26 @@
 #include <asm/irq.h>
 #include <mach/globalregs.h>
 #include <mach/board.h>
-#include <linux/err.h>
 #include "usb_hw.h"
 
-#if defined(CONFIG_ARCH_SC8825)
-#define  USB_LDO_NAME	"vddusb"
-#define  USB_CLK_NAME    	"clk_usb_ref"
-#else
 #define	 USB_LDO_NAME    "V_USB"
 #define  USB_CLK_NAME    "clk_usb_ref"
-#endif
-
-static int usb_clk_status = 0;
 
 static void usb_ldo_switch(int is_on)
 {
 	struct regulator *usb_regulator = NULL;
 
-	usb_regulator = regulator_get(NULL,USB_LDO_NAME);
-	if(IS_ERR(usb_regulator)){
-		printk(KERN_ERR "no %s found!!!\n",USB_LDO_NAME);
-		return;
+	if(usb_regulator == NULL){
+		usb_regulator = regulator_get(NULL,USB_LDO_NAME);
 	}
-	if(is_on){
-		regulator_enable(usb_regulator);
-	}else{
-		regulator_disable(usb_regulator);
+	if(usb_regulator){
+		if(is_on){
+			regulator_enable(usb_regulator);
+		}else{
+			regulator_disable(usb_regulator);
+		}
+		regulator_put(usb_regulator);
 	}
-	regulator_put(usb_regulator);
 }
 static int usb_clock_enable(int is_on)
 {
@@ -55,15 +47,9 @@ static int usb_clock_enable(int is_on)
 	usb_clock = clk_get(NULL,USB_CLK_NAME);
 	if (usb_clock) {
 		if (is_on) {
-			if(usb_clk_status == 0){
-				clk_enable(usb_clock);
-				usb_clk_status = 1;
-			}
+			clk_enable(usb_clock);
 		} else {
-			if(usb_clk_status == 1){
-				clk_disable(usb_clock);
-				usb_clk_status = 0;
-			}
+			clk_disable(usb_clock);
 		}
 	}
 	return 0;
@@ -79,64 +65,17 @@ static void usb_enable_module(int en)
 		sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,AHB_CTL0_USBD_EN,AHB_CTL0);
 	}
 }
-void usb_phy_init(void)
-{
-#ifdef CONFIG_USB_CORE_IP_293A
-		/*
-		* tiger PHY reg is different with previous ,
-		*7710 has the same core IP with tiger,but PHY reg also diff
-		*/
-        sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(11), USB_PHY_CTRL);
-        sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(10), USB_PHY_CTRL);
-        sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(20), USB_PHY_CTRL);
-        sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(9), USB_PHY_CTRL);
-        sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(8), USB_PHY_CTRL);
-        sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(13), USB_PHY_CTRL);
-		sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(12), USB_PHY_CTRL);
-        sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(15)|BIT(14), USB_PHY_CTRL);
-#else
-    if (sprd_greg_read(REG_TYPE_AHB_GLOBAL,CHIP_ID) == CHIP_ID_8810S){
-                /*SMIC chip id == 0x88100001*/
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(3)|BIT(2), USB_PHY_CTRL);
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(1) | BIT(0), USB_PHY_CTRL);
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(9), USB_PHY_CTRL);
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(16), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(17), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(13), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL, BIT(12), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(15)|BIT(14), USB_PHY_CTRL);
-                sprd_greg_write(REG_TYPE_AHB_GLOBAL,0x28,USB_SPR_REG);
-        }else{
-                /*
-                 * config usb phy controller
-                 */
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(8), USB_PHY_CTRL);
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(17), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(16), USB_PHY_CTRL);
-                sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(13)|BIT(12), USB_PHY_CTRL);
-                sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(15)|BIT(14), USB_PHY_CTRL);
-        }
-#endif
-}
 static void usb_startup(void)
 {
-
+	usb_enable_module(1);
+	mdelay(10);
 	//usb_ldo_switch(0);
 	sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(1)|BIT(2),AHB_CTL3);
 	usb_ldo_switch(1);
-	mdelay(2);
-	usb_enable_module(1);
-	mdelay(10);
 	sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(6),AHB_CTL3);
 
-//	sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(8)|BIT(14)|BIT(15)|BIT(17),AHB_CTL3);
-//	sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(12)|BIT(13)|BIT(16),AHB_CTL3);
-/*zheng01.yang@ modify for receiver test fail */
-#ifdef CONFIG_MACH_NEVISTD
-    sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(2) |BIT(0), USB_PHY_CTRL); 
-    sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(1), USB_PHY_CTRL); 
-#endif
-/*zheng01.yang@ end*/
+	sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(8)|BIT(14)|BIT(15)|BIT(17),AHB_CTL3);
+	sprd_greg_clear_bits(REG_TYPE_AHB_GLOBAL,BIT(12)|BIT(13)|BIT(16),AHB_CTL3);
 
 	sprd_greg_set_bits(REG_TYPE_AHB_GLOBAL,BIT(6)|BIT(7),AHB_SOFT_RST);
 	mdelay(5);

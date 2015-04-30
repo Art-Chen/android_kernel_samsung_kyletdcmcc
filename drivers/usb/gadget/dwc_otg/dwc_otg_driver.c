@@ -102,9 +102,6 @@ extern void dwc_udc_shutdown(
 extern int dwc_udc_state(
 	void
 	);
-extern void usb_phy_init(
-	void
-	);
 /*-------------------------------------------------------------------------*/
 /* Encapsulate the module parameter settings */
 
@@ -657,7 +654,7 @@ static int dwc_otg_driver_probe(
 	if (!dwc_otg_device->base) {
 		dev_err(&_dev->dev, "ioremap() failed\n");
 		retval = -ENOMEM;
-		goto fail;
+		goto fail_free;
 	}
 	dev_dbg(&_dev->dev, "base=0x%08x\n", (unsigned)dwc_otg_device->base);
 
@@ -774,7 +771,8 @@ static int dwc_otg_driver_probe(
 	//dwc_otg_enable_global_interrupts(dwc_otg_device->core_if);
 
 	return 0;
-
+fail_free:
+	dwc_free(dwc_otg_device);
 fail:
 	dwc_otg_driver_remove(_dev);
 	return retval;
@@ -820,7 +818,7 @@ static int __init dwc_otg_driver_init(void)
 	printk(KERN_INFO "%s: version %s\n", dwc_driver_name,
 	       DWC_DRIVER_VERSION);
 	printk(KERN_INFO "Working version %s\n", "No 007 - 10/24/2007");
-	usb_phy_init();
+
 	retval = platform_driver_probe(&dwc_otg_driver, dwc_otg_driver_probe);
 	if (retval < 0) {
 		printk(KERN_ERR "%s retval=%d\n", __func__, retval);
