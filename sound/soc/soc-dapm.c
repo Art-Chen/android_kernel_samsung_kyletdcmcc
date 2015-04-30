@@ -48,6 +48,9 @@
 
 #include <trace/events/asoc.h>
 
+/* dapm power widgets should protect */
+static DEFINE_MUTEX(widget_power_mutex);
+
 /* dapm power sequences - make this per codec in the future */
 static int dapm_up_seq[] = {
 	[snd_soc_dapm_pre] = 0,
@@ -848,6 +851,11 @@ static void dapm_seq_check_event(struct snd_soc_dapm_context *dapm,
 	}
 }
 
+#define pr_debug_soc_dapm_sequnce(x) \
+do { \
+	pr_debug("%s -> %-21s - [%02d][%s]\n", __func__, x, w->id, w->name); \
+} while (0)
+
 /* Apply the coalesced changes from a DAPM sequence */
 static void dapm_seq_run_coalesced(struct snd_soc_dapm_context *dapm,
 				   struct list_head *pending)
@@ -880,7 +888,9 @@ static void dapm_seq_run_coalesced(struct snd_soc_dapm_context *dapm,
 			w->name, reg, value, mask);
 
 		/* Check for events */
+		pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_PRE_PMU");
 		dapm_seq_check_event(dapm, w, SND_SOC_DAPM_PRE_PMU);
+		pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_PRE_PMD");
 		dapm_seq_check_event(dapm, w, SND_SOC_DAPM_PRE_PMD);
 	}
 
@@ -893,7 +903,9 @@ static void dapm_seq_run_coalesced(struct snd_soc_dapm_context *dapm,
 	}
 
 	list_for_each_entry(w, pending, power_list) {
+		pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_POST_PMU");
 		dapm_seq_check_event(dapm, w, SND_SOC_DAPM_POST_PMU);
+		pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_POST_PMD");
 		dapm_seq_check_event(dapm, w, SND_SOC_DAPM_POST_PMD);
 	}
 }
@@ -922,6 +934,8 @@ static void dapm_seq_run(struct snd_soc_dapm_context *dapm,
 		sort = dapm_up_seq;
 	else
 		sort = dapm_down_seq;
+
+	pr_debug("%s -> %s\n", __func__, power_up ? "power_up" : "power_down");
 
 	list_for_each_entry_safe(w, n, list, power_list) {
 		ret = 0;
@@ -953,12 +967,15 @@ static void dapm_seq_run(struct snd_soc_dapm_context *dapm,
 				list_for_each_entry_safe_continue(w, n, list,
 								  power_list);
 
-			if (event == SND_SOC_DAPM_STREAM_START)
+			if (event == SND_SOC_DAPM_STREAM_START) {
+				pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_PRE_PMU");
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_PRE_PMU);
-			else if (event == SND_SOC_DAPM_STREAM_STOP)
+			} else if (event == SND_SOC_DAPM_STREAM_STOP) {
+				pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_PRE_PMD");
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_PRE_PMD);
+			}
 			break;
 
 		case snd_soc_dapm_post:
@@ -966,12 +983,15 @@ static void dapm_seq_run(struct snd_soc_dapm_context *dapm,
 				list_for_each_entry_safe_continue(w, n, list,
 								  power_list);
 
-			if (event == SND_SOC_DAPM_STREAM_START)
+			if (event == SND_SOC_DAPM_STREAM_START) {
+				pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_POST_PMU");
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_POST_PMU);
-			else if (event == SND_SOC_DAPM_STREAM_STOP)
+			} else if (event == SND_SOC_DAPM_STREAM_STOP) {
+				pr_debug_soc_dapm_sequnce("SND_SOC_DAPM_POST_PMD");
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_POST_PMD);
+			}
 			break;
 
 		default:
@@ -1111,6 +1131,8 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 
 	trace_snd_soc_dapm_start(card);
 
+	mutex_lock(&widget_power_mutex);
+
 	list_for_each_entry(d, &card->dapm_list, list)
 		if (d->n_widgets || d->codec == NULL)
 			d->dev_power = 0;
@@ -1206,6 +1228,8 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 
 	/* Now power up. */
 	dapm_seq_run(dapm, &up_list, event, true);
+
+	mutex_unlock(&widget_power_mutex);
 
 	/* Run all the bias changes in parallel */
 	list_for_each_entry(d, &dapm->card->dapm_list, list)

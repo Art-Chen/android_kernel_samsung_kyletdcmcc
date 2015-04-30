@@ -16,10 +16,10 @@
 VERSION = 3
 PATCHLEVEL = 0
 SUBLEVEL = 8
-EXTRAVERSION =
+EXTRAVERSION = -Chen
 NAME = Sneaky Weasel
 
-export CROSS_COMPILE=/opt/toolchains/arm-eabi-4.4.3/bin/arm-eabi-
+export CROSS_COMPILE=/home/art-chen/arm-eabi-4.4.3/bin/arm-eabi-
 export ARCH=arm
 export USE_SEC_FIPS_MODE=true
 # *DOCUMENTATION*

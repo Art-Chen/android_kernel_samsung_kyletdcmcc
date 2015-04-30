@@ -244,11 +244,17 @@ static struct platform_device *devices[] __initdata = {
 	&sprd_spi0_device,
 	&sprd_spi1_device,
 	&sprd_keypad_device,
-	&sprd_audio_soc_device,
-	&sprd_audio_soc_vbc_device,
-	&sprd_audio_vbc_device,
+	&sprd_audio_platform_vbc_pcm_device,
+	&sprd_audio_cpu_dai_vaudio_device,
+	&sprd_audio_cpu_dai_vbc_device,
+	&sprd_audio_codec_dolphin_device,
+#ifdef CONFIG_ANDROID_PMEM
 	&sprd_pmem_device,
 	&sprd_pmem_adsp_device,
+#endif
+#ifdef CONFIG_ION
+	&sprd_ion_dev,
+#endif
 	&sprd_sdio1_device,
 	&sprd_sdio0_device,
 	&sprd_vsp_device,

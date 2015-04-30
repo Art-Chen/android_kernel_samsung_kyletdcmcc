@@ -75,8 +75,19 @@ config SPRD_PMEM_SIZE
 config SPRD_PMEM_ADSP_SIZE
         int "size for /dev/pmem_adsp"
         range 1 64
-        default 22
-	depends on ANDROID_PMEM
+        default 0
+
+config SPRD_ION_SIZE
+        int "size for /dev/ion"
+        range 1 64
+        default 24
+	depends on ION
+
+config SPRD_ION_OVERLAY_SIZE
+        int "size for /dev/ion"
+        range 0 64
+        default 0
+	depends on ION
 
 config SC8810_VIBRATOR
         depends on ARCH_SC8810
@@ -89,6 +100,13 @@ config SS_VIBRATOR
         select ANDROID_TIMED_OUTPUT
         default n
         bool "SS vibrator for SC8810"
+
+config SPRD_MEM_POOL
+	depends on ARCH_SC8810
+	default n
+        bool "Using a memory pool to alloc thread stack and pgd table"
+	help
+          This option enables memmory pool for allocating thread stack and pgd table.
 
 config SC8810_DDR_6G
         depends on ARCH_SC8810

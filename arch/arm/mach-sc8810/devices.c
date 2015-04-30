@@ -14,6 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/android_pmem.h>
+#include <linux/ion.h>
 #include <mach/hardware.h>
 #include <mach/irqs.h>
 #include <mach/board.h>
@@ -322,6 +323,28 @@ struct platform_device sprd_audio_vbc_device = {
 	.id             =  -1,
 };
 
+#if defined(CONFIG_SND_SPRD_SOC_SC881X) || defined(CONFIG_SND_SPRD_SOC_KYLEW)
+struct platform_device sprd_audio_platform_vbc_pcm_device = {
+	.name           = "sprd-vbc-pcm-audio",
+	.id             =  -1,
+};
+
+struct platform_device sprd_audio_cpu_dai_vaudio_device = {
+	.name           = "vaudio",
+	.id             =  -1,
+};
+
+struct platform_device sprd_audio_cpu_dai_vbc_device = {
+	.name           = "vbc",
+	.id             =  -1,
+};
+
+struct platform_device sprd_audio_codec_dolphin_device = {
+	.name           = "dolphin",
+	.id             =  -1,
+};
+#endif
+
 static struct resource sprd_battery_resources[] = {
         [0] = {
                 .start = EIC_CHARGER_DETECT,
@@ -371,6 +394,41 @@ struct platform_device sprd_pmem_adsp_device = {
 	.dev = {.platform_data = &sprd_pmem_adsp_pdata},
 };
 #endif
+
+#ifdef CONFIG_ION
+static struct ion_platform_data ion_pdata = {
+#if CONFIG_SPRD_ION_OVERLAY_SIZE
+	.nr = 2,
+#else
+	.nr = 1,
+#endif
+	.heaps = {
+		{
+			.id	= ION_HEAP_TYPE_CARVEOUT,
+			.type	= ION_HEAP_TYPE_CARVEOUT,
+			.name	= "ion_carveout_heap",
+			.base   = SPRD_ION_BASE,
+			.size   = SPRD_ION_SIZE,
+		},
+#if CONFIG_SPRD_ION_OVERLAY_SIZE
+		{
+			.id	= ION_HEAP_TYPE_CARVEOUT + 1,
+			.type	= ION_HEAP_TYPE_CARVEOUT,
+			.name	= "ion_carveout_heap_overlay",
+			.base   = SPRD_ION_OVERLAY_BASE,
+			.size   = SPRD_ION_OVERLAY_SIZE,
+		},
+#endif
+	}
+};
+
+struct platform_device sprd_ion_dev = {
+	.name = "ion-sprd",
+	.id = -1,
+	.dev = { .platform_data = &ion_pdata },
+};
+#endif
+
 static struct resource sprd_dcam_resources[] = {
 	{
 		.start	= SPRD_ISP_BASE,

@@ -301,7 +301,6 @@ int snd_pcm_update_state(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-extern struct timespec timestamp_match_with_dma_ptr_precision;
 static int snd_pcm_update_hw_ptr0(struct snd_pcm_substream *substream,
 				  unsigned int in_interrupt)
 {
@@ -490,13 +489,8 @@ static int snd_pcm_update_hw_ptr0(struct snd_pcm_substream *substream,
 	runtime->hw_ptr_base = hw_base;
 	runtime->status->hw_ptr = new_hw_ptr;
 	runtime->hw_ptr_jiffies = jiffies;
-#if 0
 	if (runtime->tstamp_mode == SNDRV_PCM_TSTAMP_ENABLE)
 		snd_pcm_gettime(runtime, (struct timespec *)&runtime->status->tstamp);
-#else
-	if (runtime->tstamp_mode == SNDRV_PCM_TSTAMP_ENABLE)
-		runtime->status->tstamp = timestamp_match_with_dma_ptr_precision;
-#endif
 
 	return snd_pcm_update_state(substream, runtime);
 }

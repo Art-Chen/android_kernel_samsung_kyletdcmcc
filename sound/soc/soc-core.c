@@ -65,7 +65,11 @@ static int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num);
  * It can be used to eliminate pops between different playback streams, e.g.
  * between two audio tracks.
  */
+#ifdef CONFIG_MACH_NEVISTD
+static int pmdown_time = 500;
+#else
 static int pmdown_time = 5000;
+#endif
 module_param(pmdown_time, int, 0);
 MODULE_PARM_DESC(pmdown_time, "DAPM stream powerdown time (msecs)");
 
