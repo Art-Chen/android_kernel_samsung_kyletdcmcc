@@ -74,6 +74,9 @@ static int really_do_swap_account __initdata = 0;
 #define do_swap_account		(0)
 #endif
 
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+extern void need_soft_reclaim(void);
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
 /*
  * Statistics for memory cgroup.

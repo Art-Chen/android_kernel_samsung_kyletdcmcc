@@ -2111,6 +2111,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	unsigned long pages_reclaimed = 0;
 	unsigned long did_some_progress;
 	bool sync_migration = false;
+	int retry_times = 0;
+	bool retry_timeout_flag = false;
 
 	/*
 	 * In the slowpath, we sanity check order to avoid ever trying to
@@ -2211,6 +2213,7 @@ rebalance:
 	 * running out of options and have to consider going OOM
 	 */
 	if (!did_some_progress) {
+no_progress:
 		if ((gfp_mask & __GFP_FS) && !(gfp_mask & __GFP_NORETRY)) {
 			if (oom_killer_disabled)
 				goto nopage;
@@ -2240,6 +2243,9 @@ rebalance:
 			}
 
 			goto restart;
+		} else if(retry_timeout_flag){
+		       retry_timeout_flag = false;
+		       goto nopage;
 		}
 
 		/*

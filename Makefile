@@ -16,10 +16,10 @@
 VERSION = 3
 PATCHLEVEL = 0
 SUBLEVEL = 8
-EXTRAVERSION = -Chen
+EXTRAVERSION = -Kernel_for_jellybean-ikChenxy
 NAME = Sneaky Weasel
 
-export CROSS_COMPILE=/home/art-chen/arm-eabi-4.4.3/bin/arm-eabi-
+export CROSS_COMPILE=/home/ikChenxy/arm-eabi-4.4.3/bin/arm-eabi-
 export ARCH=arm
 export USE_SEC_FIPS_MODE=true
 # *DOCUMENTATION*
