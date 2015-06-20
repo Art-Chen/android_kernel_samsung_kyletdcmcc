@@ -10,8 +10,6 @@ CROSS_COMPILE=../arm-eabi-4.4.3/bin/arm-eabi-      //*It's your path for arm-eab
 ## 1.2 Build your kernel
  $ make kyletd-vlx_defconfig
  $ make
-// This model used Image
-// $ make zImage
  $ make Image
 ## 2. Output files
 // - Kernel : Kernel/arch/arm/boot/zImage
